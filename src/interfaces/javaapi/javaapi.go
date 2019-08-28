@@ -21,7 +21,6 @@ package javaapi
 import (
 	"db/bolt/wrapper"
 	"log"
-	"strings"
 	"sync"
 
 	"common/logmgr"
@@ -40,12 +39,33 @@ import (
 	"restinterface/route"
 )
 
+type RequestServiceInfo struct {
+	ExecutionType string
+	ExeCmd        []string
+}
+
+type ReqeustService struct {
+	ServiceName string
+	ServiceInfo []RequestServiceInfo
+}
+
+type TargetInfo struct {
+	ExecutionType string
+	Target        string
+}
+
+type ResponseService struct {
+	Message          string
+	ServiceName      string
+	RemoteTargetInfo TargetInfo
+}
+
 const logPrefix = "interface"
 
 // Handle Platform Dependencies
 const (
 	platform      = "android"
-	executionType = "apk"
+	executionType = "android"
 
 	edgeDir = "/storage/emulated/0/Android/data/com.samsung.orchestration.service/files/"
 
@@ -109,29 +129,35 @@ func OrchestrationInit() (errCode int) {
 }
 
 // OrchestrationRequestService performs request from service applications who uses orchestration service
-func OrchestrationRequestService(cAppName string, cArgs string) int {
+func OrchestrationRequestService(request ReqeustService) ResponseService {
 	log.Printf("[%s] OrchestrationRequestService", logPrefix)
 
-	appName := cAppName
-	args := cArgs
-
-	argsArr := strings.Split(args, " ")
-	if strings.Compare(argsArr[0], "") == 0 {
-		argsArr = nil
-	}
-
-	log.Println("appName:", appName, "args:", argsArr)
+	log.Println("request info:", request)
 	externalAPI, err := orchestrationapi.GetExternalAPI()
 	if err != nil {
 		log.Fatalf("[%s] Orchestaration external api : %s", logPrefix, err.Error())
 	}
 
-	// TODO change JAVA-API and fill the parameter on RequestService.
-	handle := 1
-	externalAPI.RequestService(orchestrationapi.ReqeustService{})
-	log.Printf("requestService handle : %d\n", handle)
+	changed := orchestrationapi.ReqeustService{ServiceName: request.ServiceName}
+	changed.ServiceInfo = make([]orchestrationapi.RequestServiceInfo, len(request.ServiceInfo))
+	for idx, info := range request.ServiceInfo {
+		changed.ServiceInfo[idx].ExecutionType = info.ExecutionType
+		copy(changed.ServiceInfo[idx].ExeCmd, info.ExeCmd)
+	}
 
-	return handle
+	response := externalAPI.RequestService(changed)
+	log.Println("response : ", response)
+
+	ret := ResponseService{
+		Message: response.Message,
+		RemoteTargetInfo: TargetInfo{
+			ExecutionType: response.RemoteTargetInfo.ExecutionType,
+			Target:        response.RemoteTargetInfo.Target,
+		},
+		ServiceName: response.ServiceName,
+	}
+
+	return ret
 }
 
 var count int

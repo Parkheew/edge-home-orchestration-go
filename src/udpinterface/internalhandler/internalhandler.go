@@ -19,15 +19,12 @@
 package internalhandler
 
 import (
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"strings"
 
 	"common/types/servicemgrtypes"
 	"orchestrationapi"
-	"restinterface"
 	"restinterface/cipher"
 	"restinterface/resthelper"
 )
@@ -41,7 +38,6 @@ type Handler struct {
 
 	helper resthelper.RestHelper
 
-	restinterface.HasRoutes
 	cipher.HasCipher
 }
 
@@ -50,35 +46,6 @@ var handler *Handler
 func init() {
 	handler = new(Handler)
 	handler.helper = resthelper.GetHelper()
-	handler.Routes = restinterface.Routes{
-		restinterface.Route{
-			Name:        "APIV1Ping",
-			Method:      strings.ToUpper("Get"),
-			Pattern:     "/api/v1/ping",
-			HandlerFunc: handler.APIV1Ping,
-		},
-
-		restinterface.Route{
-			Name:        "APIV1ServicemgrServicesPost",
-			Method:      strings.ToUpper("Post"),
-			Pattern:     "/api/v1/servicemgr/services",
-			HandlerFunc: handler.APIV1ServicemgrServicesPost,
-		},
-
-		restinterface.Route{
-			Name:        "APIV1ServicemgrServicesNotificationServiceIDPost",
-			Method:      strings.ToUpper("Post"),
-			Pattern:     "/api/v1/servicemgr/services/notification/{serviceid}",
-			HandlerFunc: handler.APIV1ServicemgrServicesNotificationServiceIDPost,
-		},
-
-		restinterface.Route{
-			Name:        "APIV1ScoringmgrScoreLibnameGet",
-			Method:      strings.ToUpper("Get"),
-			Pattern:     "/api/v1/scoringmgr/score",
-			HandlerFunc: handler.APIV1ScoringmgrScoreLibnameGet,
-		},
-	}
 }
 
 // GetHandler returns the singleton Handler instance
@@ -92,14 +59,19 @@ func (h *Handler) SetOrchestrationAPI(o orchestrationapi.OrcheInternalAPI) {
 	h.isSetAPI = true
 }
 
+// IsSetAPIInstance returns isSetAPI
+func (h *Handler) IsSetAPIInstance() bool {
+	return h.isSetAPI
+}
+
 // APIV1Ping handles ping request from remote orchestration
-func (h *Handler) APIV1Ping(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIV1Ping(conn *net.UDPConn) {
 	log.Printf("[%s] APIV1Ping", logPrefix)
 	h.helper.ResponseJSON(w, nil, http.StatusOK)
 }
 
 // APIV1ServicemgrServicesPost handles service execution request from remote orchestration
-func (h *Handler) APIV1ServicemgrServicesPost(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIV1ServicemgrServicesPost(conn *net.UDPConn, clientIP []byte, body []byte) {
 	log.Printf("[%s] APIV1ServicemgrServicesPost", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
@@ -111,17 +83,14 @@ func (h *Handler) APIV1ServicemgrServicesPost(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	remoteAddr, _, _ := net.SplitHostPort(r.RemoteAddr)
-	encryptBytes, _ := ioutil.ReadAll(r.Body)
-
-	appInfo, err := h.Key.DecryptByteToJSON(encryptBytes)
+	appInfo, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption", logPrefix)
 		h.helper.Response(w, http.StatusServiceUnavailable)
 		return
 	}
 
-	appInfo["NotificationTargetURL"] = remoteAddr
+	appInfo["NotificationTargetURL"] = string(clientIP)
 	log.Println(appInfo)
 
 	h.api.ExecuteAppOnLocal(appInfo)
@@ -140,7 +109,7 @@ func (h *Handler) APIV1ServicemgrServicesPost(w http.ResponseWriter, r *http.Req
 }
 
 // APIV1ServicemgrServicesNotificationServiceIDPost handles service notification request from remote orchestration
-func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(conn *net.UDPConn, body []byte) {
 	log.Printf("[%s] APIV1ServicemgrServicesNotificationServiceIDPost", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
@@ -152,9 +121,7 @@ func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(w http.Respon
 		return
 	}
 
-	encryptBytes, _ := ioutil.ReadAll(r.Body)
-
-	statusNotification, err := h.Key.DecryptByteToJSON(encryptBytes)
+	statusNotification, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption", logPrefix)
 		h.helper.Response(w, http.StatusServiceUnavailable)
@@ -174,7 +141,7 @@ func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(w http.Respon
 }
 
 // APIV1ScoringmgrScoreLibnameGet handles scoring request from remote orchestration
-func (h *Handler) APIV1ScoringmgrScoreLibnameGet(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) APIV1ScoringmgrScoreLibnameGet(conn *net.UDPConn, body []byte) {
 	log.Printf("[%s] APIV1ScoringmgrScoreLibnameGet", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
@@ -186,8 +153,7 @@ func (h *Handler) APIV1ScoringmgrScoreLibnameGet(w http.ResponseWriter, r *http.
 		return
 	}
 
-	encryptBytes, _ := ioutil.ReadAll(r.Body)
-	Info, err := h.Key.DecryptByteToJSON(encryptBytes)
+	Info, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption %s", logPrefix, err.Error())
 		h.helper.Response(w, http.StatusServiceUnavailable)
