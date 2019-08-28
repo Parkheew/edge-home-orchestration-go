@@ -24,7 +24,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	c "restinterface/cipher"
+	c "udpinterface/cipher"
 )
 
 // Cipher has passphrase for ciphering

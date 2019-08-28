@@ -23,20 +23,20 @@ import (
 	"errors"
 	"log"
 
-	"restinterface/cipher"
-	"restinterface/client"
-	"restinterface/resthelper"
+	"udpinterface/cipher"
+	"udpinterface/client"
+	"udpinterface/helper"
 )
 
 type udpClientImpl struct {
 	port int
 	cipher.HasCipher
-	helper resthelper.RestHelper
+	helper helper.UDPHelper
 }
 
 type packetBody struct {
-	action string
-	data   []byte
+	Action string
+	Data   []byte
 }
 
 const (
@@ -49,7 +49,7 @@ var udpClient *udpClientImpl
 func init() {
 	udpClient = new(udpClientImpl)
 	udpClient.port = constWellknownPort
-	udpClient.helper = resthelper.GetHelper()
+	udpClient.helper = helper.GetHelper()
 }
 
 // GetUDPClient returns the singleton restClientImpl instance
@@ -69,15 +69,15 @@ func (c udpClientImpl) DoExecuteRemoteDevice(appInfo map[string]interface{}, tar
 	}
 
 	packet := packetBody{
-		action: "APIV1ServicemgrServicesPost",
-		data:   encryptBytes,
+		Action: "APIV1ServicemgrServicesPost",
+		Data:   encryptBytes,
 	}
 	sendByte, err := json.Marshal(&packet)
 	if err != nil {
 		return errors.New("[" + logPrefix + "] can not Marshal " + err.Error())
 	}
 
-	respBytes, err := c.helper.SendUDPRequest(target, sendByte)
+	respBytes, err := c.helper.SendRequest(target, sendByte)
 	if err != nil {
 		return errors.New("[" + logPrefix + "] request return error" + err.Error())
 	}
@@ -108,15 +108,15 @@ func (c udpClientImpl) DoNotifyAppStatusRemoteDevice(statusNotificationInfo map[
 	}
 
 	packet := packetBody{
-		action: "APIV1ServicemgrServicesNotificationServiceIDPost",
-		data:   encryptBytes,
+		Action: "APIV1ServicemgrServicesNotificationServiceIDPost",
+		Data:   encryptBytes,
 	}
 	sendByte, err := json.Marshal(&packet)
 	if err != nil {
 		return errors.New("[" + logPrefix + "] can not Marshal " + err.Error())
 	}
 
-	_, err = c.helper.SendUDPRequest(target, sendByte)
+	_, err = c.helper.SendRequest(target, sendByte)
 	if err != nil {
 		return errors.New("[" + logPrefix + "] request return error" + err.Error())
 	}
@@ -137,8 +137,8 @@ func (c udpClientImpl) DoGetScoreRemoteDevice(devID string, endpoint string) (sc
 	}
 
 	packet := packetBody{
-		action: "APIV1ScoringmgrScoreLibnameGet",
-		data:   encryptBytes,
+		Action: "APIV1ScoringmgrScoreLibnameGet",
+		Data:   encryptBytes,
 	}
 
 	sendByte, err := json.Marshal(&packet)
@@ -146,7 +146,7 @@ func (c udpClientImpl) DoGetScoreRemoteDevice(devID string, endpoint string) (sc
 		return 0, errors.New("[" + logPrefix + "] can not Marshal " + err.Error())
 	}
 
-	respBytes, err := c.helper.SendUDPRequest(endpoint, sendByte)
+	respBytes, err := c.helper.SendRequest(endpoint, sendByte)
 	if err == nil {
 		respMsg, err := c.Key.DecryptByteToJSON(respBytes)
 		if err != nil {

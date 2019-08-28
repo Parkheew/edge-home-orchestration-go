@@ -43,12 +43,12 @@ import (
 
 	"orchestrationapi"
 
-	"restinterface/cipher/dummy"
-	"restinterface/cipher/sha256"
-	"restinterface/client/restclient"
-	"restinterface/externalhandler"
-	"restinterface/internalhandler"
-	"restinterface/route"
+	"udpinterface/cipher/dummy"
+	"udpinterface/cipher/sha256"
+	"udpinterface/client/udpclient"
+	"udpinterface/externalhandler"
+	"udpinterface/internalhandler"
+	"udpinterface/udproute"
 
 	"db/bolt/wrapper"
 )
@@ -98,10 +98,10 @@ func orchestrationInit() error {
 	// log.Println(">>> buildTime : ", buildTime)
 	wrapper.SetBoltDBPath(dbPath)
 
-	restIns := restclient.GetRestClient()
-	restIns.SetCipher(sha256.GetCipher(cipherKeyFilePath))
+	udpIns := udpclient.GetUDPClient()
+	udpIns.SetCipher(sha256.GetCipher(cipherKeyFilePath))
 
-	servicemgr.GetInstance().SetClient(restIns)
+	servicemgr.GetInstance().SetClient(udpIns)
 
 	builder := orchestrationapi.OrchestrationBuilder{}
 	builder.SetWatcher(configuremgr.GetInstance(configPath))
@@ -109,7 +109,7 @@ func orchestrationInit() error {
 	builder.SetScoring(scoringmgr.GetInstance())
 	builder.SetService(servicemgr.GetInstance())
 	builder.SetExecutor(executor.GetInstance())
-	builder.SetClient(restIns)
+	builder.SetClient(udpIns)
 
 	orcheEngine := builder.Build()
 	if orcheEngine == nil {
@@ -119,7 +119,7 @@ func orchestrationInit() error {
 
 	orcheEngine.Start(deviceIDFilePath, platform, executionType)
 
-	restEdgeRouter := route.NewRestRouter()
+	EdgeRouter := udproute.NewUDPRouter()
 
 	internalapi, err := orchestrationapi.GetInternalAPI()
 	if err != nil {
@@ -128,7 +128,7 @@ func orchestrationInit() error {
 	ihandle := internalhandler.GetHandler()
 	ihandle.SetOrchestrationAPI(internalapi)
 	ihandle.SetCipher(sha256.GetCipher(cipherKeyFilePath))
-	restEdgeRouter.Add(ihandle)
+	// restEdgeRouter.Add(ihandle)
 
 	// external rest api
 	externalapi, err := orchestrationapi.GetExternalAPI()
@@ -138,9 +138,11 @@ func orchestrationInit() error {
 	ehandle := externalhandler.GetHandler()
 	ehandle.SetOrchestrationAPI(externalapi)
 	ehandle.SetCipher(dummy.GetCipher(cipherKeyFilePath))
-	restEdgeRouter.Add(ehandle)
+	// restEdgeRouter.Add(ehandle)
 
-	restEdgeRouter.Start()
+	EdgeRouter.SetAPIInstance(ehandle, ihandle)
+
+	EdgeRouter.Start()
 
 	log.Println(logPrefix, "orchestration init done")
 

@@ -24,7 +24,7 @@ import (
 	"common/networkhelper"
 	"controller/servicemgr/executor"
 	"controller/servicemgr/notification"
-	"restinterface/client"
+	"udpinterface/client"
 )
 
 // ServiceMgr is the interface to execute service application

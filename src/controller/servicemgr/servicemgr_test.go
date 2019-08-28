@@ -25,7 +25,7 @@ import (
 
 	"common/networkhelper"
 	executorMock "controller/servicemgr/executor/mocks"
-	clientApiMock "restinterface/client/mocks"
+	clientApiMock "udpinterface/client/mocks"
 
 	"github.com/golang/mock/gomock"
 	//	"bytes"

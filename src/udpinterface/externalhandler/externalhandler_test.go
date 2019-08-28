@@ -25,8 +25,8 @@ import (
 
 	orchestrationapi "orchestrationapi"
 	orchemock "orchestrationapi/mocks"
-	ciphermock "restinterface/cipher/mocks"
-	helpermock "restinterface/resthelper/mocks"
+	ciphermock "udpinterface/cipher/mocks"
+	helpermock "udpinterface/resthelper/mocks"
 
 	"github.com/golang/mock/gomock"
 )

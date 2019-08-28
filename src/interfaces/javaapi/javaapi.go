@@ -33,10 +33,8 @@ import (
 
 	"orchestrationapi"
 
-	"restinterface/cipher/sha256"
-	"restinterface/client/restclient"
-	"restinterface/internalhandler"
-	"restinterface/route"
+	"udpinterface/cipher/sha256"
+	"udpinterface/internalhandler"
 )
 
 type RequestServiceInfo struct {

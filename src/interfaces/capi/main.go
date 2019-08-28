@@ -78,10 +78,10 @@ import (
 
 	"orchestrationapi"
 
-	"restinterface/cipher/sha256"
-	"restinterface/client/restclient"
-	"restinterface/internalhandler"
-	"restinterface/route"
+	"udpinterface/cipher/sha256"
+	"udpinterface/client/udpclient"
+	"udpinterface/internalhandler"
+	"udpinterface/route"
 
 	"db/bolt/wrapper"
 )

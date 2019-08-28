@@ -34,13 +34,13 @@ const (
 
 //UDPRouter struct
 type UDPRouter struct {
-	eHandler externalhandler.Handler
-	iHandler internalhandler.Handler
+	eHandler *externalhandler.Handler
+	iHandler *internalhandler.Handler
 }
 
 type packetBody struct {
 	Action string
-	data   []byte
+	Data   []byte
 }
 
 var udpRouter *UDPRouter
@@ -55,7 +55,7 @@ func NewUDPRouter() *UDPRouter {
 }
 
 //SetAPIInstance sets external / internal API instance
-func (u *UDPRouter) SetAPIInstance(eHandler externalhandler.Handler, iHandler internalhandler.Handler) {
+func (u *UDPRouter) SetAPIInstance(eHandler *externalhandler.Handler, iHandler *internalhandler.Handler) {
 	u.eHandler = eHandler
 	u.iHandler = iHandler
 }
@@ -82,7 +82,6 @@ func (u *UDPRouter) startServer() {
 	for {
 		n, clientAddr, err := conn.ReadFromUDP(buf)
 		log.Println("udp request from", clientAddr)
-
 		if err != nil {
 			log.Println("Read Error!", err.Error())
 			continue
@@ -103,7 +102,7 @@ func (u *UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, clien
 		log.Println("Packet UnMarshal error")
 		return
 	}
-
+	log.Println(packet)
 	switch packet.Action {
 	case "APIV1Ping":
 		//handle ping from remote orchestration
@@ -111,9 +110,10 @@ func (u *UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, clien
 		// if err != nil {
 		// 	log.Println("cannot Respond to ping", err.Error())
 		// }
-		u.iHandler.APIV1Ping(conn)
+		u.iHandler.APIV1Ping(conn, clientAddr)
 	case "APIV1DiscoveryFromRelay":
 		//handle discovery message from relay
+		log.Println("APIV1DiscoveryFromRelay")
 		_, err := conn.WriteToUDP([]byte("discovery msg received"), clientAddr)
 		if err != nil {
 			log.Println("cannot Respond to discovery msg", err.Error())
@@ -124,27 +124,31 @@ func (u *UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, clien
 		// if err != nil {
 		// 	log.Println("cannot Respond to service req", err.Error())
 		// }
-		u.iHandler.APIV1ServicemgrServicesPost(conn, clientAddr.IP, packet.data)
+		log.Println("APIV1ServicemgrServicesPost")
+		u.iHandler.APIV1ServicemgrServicesPost(conn, clientAddr, packet.Data)
 	case "APIV1ServicemgrServicesNotificationServiceIDPost":
 		//handle service notification request from remote orchestration
 		// _, err := conn.WriteToUDP([]byte("service noti req received"), clientAddr)
 		// if err != nil {
 		// 	log.Println("cannot Respond to service notification req", err.Error())
 		// }
-		u.iHandler.APIV1ServicemgrServicesNotificationServiceIDPost(conn, packet.data)
+		log.Println("APIV1ServicemgrServicesNotificationServiceIDPost")
+		u.iHandler.APIV1ServicemgrServicesNotificationServiceIDPost(conn, clientAddr, packet.Data)
 	case "APIV1ScoringmgrScoreLibnameGet":
 		//handle scoring request from remote orchestration
 		// _, err := conn.WriteToUDP([]byte("get score req received"), clientAddr)
 		// if err != nil {
 		// 	log.Println("cannot Respond to score request", err.Error())
 		// }
-		u.iHandler.APIV1ScoringmgrScoreLibnameGet(conn, packet.data)
+		log.Println("APIV1ScoringmgrScoreLibnameGet")
+		u.iHandler.APIV1ScoringmgrScoreLibnameGet(conn, clientAddr, packet.Data)
 	case "APIV1RequestServicePost":
 		//handles service request from service application
 		// _, err := conn.WriteToUDP([]byte("app service req received"), clientAddr)
 		// if err != nil {
 		// 	log.Println("cannot Respond to request app service request", err.Error())
 		// }
-		u.eHandler.APIV1RequestServicePost(conn, packet.data)
+		log.Println("APIV1RequestServicePost")
+		u.eHandler.APIV1RequestServicePost(conn, clientAddr, packet.Data)
 	}
 }

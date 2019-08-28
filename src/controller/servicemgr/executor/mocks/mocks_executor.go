@@ -7,9 +7,10 @@ package mocks
 import (
 	executor "controller/servicemgr/executor"
 	notification "controller/servicemgr/notification"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	client "restinterface/client"
+	client "udpinterface/client"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockServiceExecutor is a mock of ServiceExecutor interface

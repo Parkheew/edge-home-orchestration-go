@@ -31,7 +31,7 @@ import (
 	"controller/servicemgr"
 	"controller/servicemgr/executor"
 	"controller/servicemgr/notification"
-	"restinterface/client"
+	"udpinterface/client"
 )
 
 const logtag = "Orchestration"

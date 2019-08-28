@@ -15,11 +15,11 @@
  *
  *******************************************************************************/
 
-// Package client implements REST client management functions
+// Package client implements UDP client management functions
 package client
 
 import (
-	"restinterface/cipher"
+	"udpinterface/cipher"
 )
 
 // Clienter interface

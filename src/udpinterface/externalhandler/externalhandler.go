@@ -23,18 +23,18 @@ import (
 	"net"
 
 	"orchestrationapi"
-	"restinterface/cipher"
-	"restinterface/resthelper"
+	"udpinterface/cipher"
+	"udpinterface/helper"
 )
 
-const logPrefix = "RestExternalInterface"
+const logPrefix = "ExternalInterface"
 
 // Handler struct
 type Handler struct {
 	isSetAPI bool
 	api      orchestrationapi.OrcheExternalAPI
 
-	helper resthelper.RestHelper
+	helper helper.UDPHelper
 
 	cipher.HasCipher
 }
@@ -43,7 +43,7 @@ var handler *Handler
 
 func init() {
 	handler = new(Handler)
-	handler.helper = resthelper.GetHelper()
+	handler.helper = helper.GetHelper()
 }
 
 // GetHandler returns the singleton Handler instance
@@ -63,15 +63,15 @@ func (h *Handler) IsSetAPIInstance() bool {
 }
 
 // APIV1RequestServicePost handles service request from service application
-func (h *Handler) APIV1RequestServicePost(conn *net.UDPConn, body []byte) {
+func (h *Handler) APIV1RequestServicePost(conn *net.UDPConn, clientAddr *net.UDPAddr, body []byte) {
 	log.Printf("[%s] APIV1RequestServicePost", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
-		// h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), clientAddr)
 		return
 	} else if h.IsSetKey == false {
 		log.Printf("[%s] does not set key", logPrefix)
-		// h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), clientAddr)
 		return
 	}
 
@@ -150,13 +150,26 @@ SEND_RESP:
 	respEncryptBytes, err := h.Key.EncryptJSONToByte(respJSONMsg)
 	if err != nil {
 		log.Printf("[%s] can not encryption", logPrefix)
-		// h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), clientAddr)
 		return
 	}
 
-	// h.helper.ResponseJSON(w, respEncryptBytes, http.StatusOK)
+	h.helper.ResponseJSON(conn, respEncryptBytes, clientAddr)
 }
 
-func (h *Handler) setHelper(helper resthelper.RestHelper) {
+func (h *Handler) setHelper(helper helper.UDPHelper) {
 	h.helper = helper
+}
+
+func (h *Handler) makeErrorBody(code int) []byte {
+	respJSONMsg := make(map[string]interface{})
+	respJSONMsg["Code"] = code
+
+	respEncryptBytes, err := h.Key.EncryptJSONToByte(respJSONMsg)
+	if err != nil {
+		log.Printf("[%s] can not encryption", logPrefix)
+		return nil
+	}
+
+	return respEncryptBytes
 }

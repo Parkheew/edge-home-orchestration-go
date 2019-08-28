@@ -7,7 +7,7 @@ package mocks
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	client "restinterface/client"
+	client "udpinterface/client"
 )
 
 // MockNotification is a mock of Notification interface

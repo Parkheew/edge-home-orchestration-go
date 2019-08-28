@@ -19,10 +19,11 @@
 package resourceutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"restinterface/resthelper"
+	"udpinterface/helper"
 
 	netDB "db/bolt/network"
 )
@@ -34,12 +35,17 @@ const (
 )
 
 var (
-	helper        resthelper.RestHelper
+	udphelper     helper.UDPHelper
 	netDBExecutor netDB.DBInterface
 )
 
+type packetBody struct {
+	Action string
+	Data   []byte
+}
+
 func init() {
-	helper = resthelper.GetHelper()
+	udphelper = helper.GetHelper()
 	netDBExecutor = netDB.Query{}
 }
 
@@ -71,10 +77,21 @@ func processRTT() {
 }
 
 func checkRTT(ip string) (rtt float64) {
-	targetURL := helper.MakeTargetURL(ip, internalPort, pingAPI)
+	packet := packetBody{
+		Action: "APIV1Ping",
+		Data:   []byte{},
+	}
+
+	sendByte, err := json.Marshal(&packet)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
 	reqTime := time.Now()
-	_, _, err := helper.DoGet(targetURL)
+	_, err = udphelper.SendRequest(fmt.Sprintf("%s:%d", ip, internalPort), sendByte)
+
+	//targetURL := udphelper.MakeTargetURL(ip, internalPort, pingAPI)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

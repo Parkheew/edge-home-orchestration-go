@@ -21,22 +21,21 @@ package internalhandler
 import (
 	"log"
 	"net"
-	"net/http"
 
 	"common/types/servicemgrtypes"
 	"orchestrationapi"
-	"restinterface/cipher"
-	"restinterface/resthelper"
+	"udpinterface/cipher"
+	"udpinterface/helper"
 )
 
-const logPrefix = "RestInternalInterface"
+const logPrefix = "InternalInterface"
 
 // Handler struct
 type Handler struct {
 	isSetAPI bool
 	api      orchestrationapi.OrcheInternalAPI
 
-	helper resthelper.RestHelper
+	helper helper.UDPHelper
 
 	cipher.HasCipher
 }
@@ -45,7 +44,7 @@ var handler *Handler
 
 func init() {
 	handler = new(Handler)
-	handler.helper = resthelper.GetHelper()
+	handler.helper = helper.GetHelper()
 }
 
 // GetHandler returns the singleton Handler instance
@@ -65,66 +64,67 @@ func (h *Handler) IsSetAPIInstance() bool {
 }
 
 // APIV1Ping handles ping request from remote orchestration
-func (h *Handler) APIV1Ping(conn *net.UDPConn) {
+func (h *Handler) APIV1Ping(conn *net.UDPConn, addr *net.UDPAddr) {
 	log.Printf("[%s] APIV1Ping", logPrefix)
-	h.helper.ResponseJSON(w, nil, http.StatusOK)
+	h.helper.ResponseJSON(conn, h.makeErrorBody(helper.StatusOK), addr)
 }
 
 // APIV1ServicemgrServicesPost handles service execution request from remote orchestration
-func (h *Handler) APIV1ServicemgrServicesPost(conn *net.UDPConn, clientIP []byte, body []byte) {
+func (h *Handler) APIV1ServicemgrServicesPost(conn *net.UDPConn, addr *net.UDPAddr, body []byte) {
 	log.Printf("[%s] APIV1ServicemgrServicesPost", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	} else if h.IsSetKey == false {
 		log.Printf("[%s] does not set key", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
 	appInfo, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
-	appInfo["NotificationTargetURL"] = string(clientIP)
+	appInfo["NotificationTargetURL"] = string(addr.IP)
 	log.Println(appInfo)
 
 	h.api.ExecuteAppOnLocal(appInfo)
 
 	respJSONMsg := make(map[string]interface{})
+	respJSONMsg["Code"] = helper.StatusOK
 	respJSONMsg["Status"] = servicemgrtypes.ConstServiceStatusStarted
 
 	respEncryptBytes, err := h.Key.EncryptJSONToByte(respJSONMsg)
 	if err != nil {
 		log.Printf("[%s] can not encryption", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
-	h.helper.ResponseJSON(w, respEncryptBytes, http.StatusOK)
+	h.helper.ResponseJSON(conn, respEncryptBytes, addr)
 }
 
 // APIV1ServicemgrServicesNotificationServiceIDPost handles service notification request from remote orchestration
-func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(conn *net.UDPConn, body []byte) {
+func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(conn *net.UDPConn, addr *net.UDPAddr, body []byte) {
 	log.Printf("[%s] APIV1ServicemgrServicesNotificationServiceIDPost", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	} else if h.IsSetKey == false {
 		log.Printf("[%s] does not set key", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
 	statusNotification, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
@@ -133,30 +133,30 @@ func (h *Handler) APIV1ServicemgrServicesNotificationServiceIDPost(conn *net.UDP
 
 	err = h.api.HandleNotificationOnLocal(serviceID, status)
 	if err != nil {
-		h.helper.Response(w, http.StatusInternalServerError)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
-	handler.helper.Response(w, http.StatusOK)
+	h.helper.ResponseJSON(conn, h.makeErrorBody(helper.StatusOK), addr)
 }
 
 // APIV1ScoringmgrScoreLibnameGet handles scoring request from remote orchestration
-func (h *Handler) APIV1ScoringmgrScoreLibnameGet(conn *net.UDPConn, body []byte) {
+func (h *Handler) APIV1ScoringmgrScoreLibnameGet(conn *net.UDPConn, addr *net.UDPAddr, body []byte) {
 	log.Printf("[%s] APIV1ScoringmgrScoreLibnameGet", logPrefix)
 	if h.isSetAPI == false {
 		log.Printf("[%s] does not set api", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	} else if h.IsSetKey == false {
 		log.Printf("[%s] does not set key", logPrefix)
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
 	Info, err := h.Key.DecryptByteToJSON(body)
 	if err != nil {
 		log.Printf("[%s] can not decryption %s", logPrefix, err.Error())
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
@@ -165,23 +165,37 @@ func (h *Handler) APIV1ScoringmgrScoreLibnameGet(conn *net.UDPConn, body []byte)
 	scoreValue, err := h.api.GetScore(devID.(string))
 	if err != nil {
 		log.Printf("[%s] GetScore fail : %s", logPrefix, err.Error())
-		h.helper.Response(w, http.StatusInternalServerError)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
 	respJSONMsg := make(map[string]interface{})
+	respJSONMsg["Code"] = helper.StatusOK
 	respJSONMsg["ScoreValue"] = scoreValue
 
 	respEncryptBytes, err := h.Key.EncryptJSONToByte(respJSONMsg)
 	if err != nil {
 		log.Printf("[%s] can not encryption %s", logPrefix, err.Error())
-		h.helper.Response(w, http.StatusServiceUnavailable)
+		h.helper.ResponseJSON(conn, h.makeErrorBody(helper.NOTFoundError), addr)
 		return
 	}
 
-	h.helper.ResponseJSON(w, respEncryptBytes, http.StatusOK)
+	h.helper.ResponseJSON(conn, respEncryptBytes, addr)
 }
 
-func (h *Handler) setHelper(helper resthelper.RestHelper) {
+func (h *Handler) setHelper(helper helper.UDPHelper) {
 	h.helper = helper
+}
+
+func (h *Handler) makeErrorBody(code int) []byte {
+	respJSONMsg := make(map[string]interface{})
+	respJSONMsg["Code"] = code
+
+	respEncryptBytes, err := h.Key.EncryptJSONToByte(respJSONMsg)
+	if err != nil {
+		log.Printf("[%s] can not encryption", logPrefix)
+		return nil
+	}
+
+	return respEncryptBytes
 }

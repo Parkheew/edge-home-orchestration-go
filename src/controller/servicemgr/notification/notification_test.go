@@ -29,7 +29,7 @@ import (
 	"common/networkhelper"
 
 	"github.com/golang/mock/gomock"
-	clientMocks "restinterface/client/mocks"
+	clientMocks "udpinterface/client/mocks"
 )
 
 var (

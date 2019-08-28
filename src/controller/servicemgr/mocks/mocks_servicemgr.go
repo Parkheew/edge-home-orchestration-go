@@ -8,7 +8,7 @@ import (
 	executor "controller/servicemgr/executor"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	client "restinterface/client"
+	client "udpinterface/client"
 )
 
 // MockServiceMgr is a mock of ServiceMgr interface

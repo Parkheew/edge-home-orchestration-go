@@ -7,7 +7,7 @@ package mocks
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	cipher "restinterface/cipher"
+	cipher "udpinterface/cipher"
 )
 
 // MockIEdgeCipherer is a mock of IEdgeCipherer interface

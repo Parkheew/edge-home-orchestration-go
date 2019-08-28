@@ -32,7 +32,7 @@ import (
 	scoringmocks "controller/scoringmgr/mocks"
 	executormocks "controller/servicemgr/executor/mocks"
 	servicemocks "controller/servicemgr/mocks"
-	clientmocks "restinterface/client/mocks"
+	clientmocks "udpinterface/client/mocks"
 )
 
 var (

@@ -20,7 +20,7 @@ package executor
 
 import (
 	"controller/servicemgr/notification"
-	"restinterface/client"
+	"udpinterface/client"
 )
 
 // ServiceExecutor interface

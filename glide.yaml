@@ -33,16 +33,16 @@ ignore:
   - db/bolt/wrapper
   - db/helper
   - orchestrationapi
-  - restinterface
-  - restinterface/cipher
-  - restinterface/cipher/dummy
-  - restinterface/cipher/sha256
-  - restinterface/client
-  - restinterface/client/restclient
-  - restinterface/externalhandler
-  - restinterface/internalhandler
-  - restinterface/resthelper
-  - restinterface/route
+  - udpinterface
+  - udpinterface/cipher
+  - udpinterface/cipher/dummy
+  - udpinterface/cipher/sha256
+  - udpinterface/client
+  - udpinterface/client/udpclient
+  - udpinterface/externalhandler
+  - udpinterface/internalhandler
+  - udpinterface/helper
+  - udpinterface/udproute
   # https://github.com/Masterminds/glide/issues/1055
   - crypto/ed25519
 import:

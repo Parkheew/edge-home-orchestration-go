@@ -31,7 +31,7 @@ import (
 	"controller/servicemgr"
 	"controller/servicemgr/notification"
 	dbcommon "db/bolt/common"
-	"restinterface/client"
+	"udpinterface/client"
 
 	sysDB "db/bolt/system"
 	dbhelper "db/helper"

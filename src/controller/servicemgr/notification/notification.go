@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"common/networkhelper"
-	"restinterface/client"
+	"udpinterface/client"
 )
 
 // Notification is the interface for notification

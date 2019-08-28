@@ -34,7 +34,7 @@ import (
 	"controller/servicemgr/executor"
 	"controller/servicemgr/executor/containerexecutor/mocks"
 	notificationMock "controller/servicemgr/notification/mocks"
-	clientApiMock "restinterface/client/mocks"
+	clientApiMock "udpinterface/client/mocks"
 
 	"github.com/docker/go-units"
 	gomock "github.com/golang/mock/gomock"

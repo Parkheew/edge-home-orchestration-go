@@ -22,7 +22,7 @@ import (
 
 	"controller/servicemgr/executor"
 	notificationMock "controller/servicemgr/notification/mocks"
-	clientApiMock "restinterface/client/mocks"
+	clientApiMock "udpinterface/client/mocks"
 
 	"github.com/golang/mock/gomock"
 )
