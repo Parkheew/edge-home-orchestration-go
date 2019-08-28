@@ -22,6 +22,9 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+
+	"udpinterface/externalhandler"
+	"udpinterface/internalhandler"
 )
 
 const (
@@ -31,26 +34,44 @@ const (
 
 //UDPRouter struct
 type UDPRouter struct {
+	eHandler externalhandler.Handler
+	iHandler internalhandler.Handler
 }
 
 type packetBody struct {
 	Action string
-	data   interface{}
+	data   []byte
+}
+
+var udpRouter *UDPRouter
+
+func init() {
+	udpRouter = new(UDPRouter)
 }
 
 //NewUDPRouter constructs UDPRouter instance
 func NewUDPRouter() *UDPRouter {
-	udpRouter := new(UDPRouter)
 	return udpRouter
 }
 
+//SetAPIInstance sets external / internal API instance
+func (u *UDPRouter) SetAPIInstance(eHandler externalhandler.Handler, iHandler internalhandler.Handler) {
+	u.eHandler = eHandler
+	u.iHandler = iHandler
+}
+
 //Start wraps startServer function
-func (u UDPRouter) Start() {
+func (u *UDPRouter) Start() {
 	go u.startServer()
 }
 
 //StartServer starts a UDP server on given port
-func (u UDPRouter) startServer() {
+func (u *UDPRouter) startServer() {
+	if !u.eHandler.IsSetAPIInstance() || !u.iHandler.IsSetAPIInstance() {
+		log.Println("external / internal API instance is not set")
+		return
+	}
+
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: ConstWellknownPort, Zone: ""})
 	if err != nil {
 		log.Println("UDP server could not be started")
@@ -75,7 +96,7 @@ func (u UDPRouter) startServer() {
 	}
 }
 
-func (u UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, clientAddr *net.UDPAddr) {
+func (u *UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, clientAddr *net.UDPAddr) {
 	var packet packetBody
 	err := json.Unmarshal(buffer[:n], &packet)
 	if err != nil {
@@ -86,10 +107,11 @@ func (u UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, client
 	switch packet.Action {
 	case "APIV1Ping":
 		//handle ping from remote orchestration
-		_, err := conn.WriteToUDP([]byte("ping received"), clientAddr)
-		if err != nil {
-			log.Println("cannot Respond to ping", err.Error())
-		}
+		// _, err := conn.WriteToUDP([]byte("ping received"), clientAddr)
+		// if err != nil {
+		// 	log.Println("cannot Respond to ping", err.Error())
+		// }
+		u.iHandler.APIV1Ping(conn)
 	case "APIV1DiscoveryFromRelay":
 		//handle discovery message from relay
 		_, err := conn.WriteToUDP([]byte("discovery msg received"), clientAddr)
@@ -98,27 +120,31 @@ func (u UDPRouter) handleRequest(buffer []byte, n int, conn *net.UDPConn, client
 		}
 	case "APIV1ServicemgrServicesPost":
 		//handle service execution request from remote orchestration
-		_, err := conn.WriteToUDP([]byte("service req received"), clientAddr)
-		if err != nil {
-			log.Println("cannot Respond to service req", err.Error())
-		}
+		// _, err := conn.WriteToUDP([]byte("service req received"), clientAddr)
+		// if err != nil {
+		// 	log.Println("cannot Respond to service req", err.Error())
+		// }
+		u.iHandler.APIV1ServicemgrServicesPost(conn, clientAddr.IP, packet.data)
 	case "APIV1ServicemgrServicesNotificationServiceIDPost":
 		//handle service notification request from remote orchestration
-		_, err := conn.WriteToUDP([]byte("service noti req received"), clientAddr)
-		if err != nil {
-			log.Println("cannot Respond to service notification req", err.Error())
-		}
+		// _, err := conn.WriteToUDP([]byte("service noti req received"), clientAddr)
+		// if err != nil {
+		// 	log.Println("cannot Respond to service notification req", err.Error())
+		// }
+		u.iHandler.APIV1ServicemgrServicesNotificationServiceIDPost(conn, packet.data)
 	case "APIV1ScoringmgrScoreLibnameGet":
 		//handle scoring request from remote orchestration
-		_, err := conn.WriteToUDP([]byte("get score req received"), clientAddr)
-		if err != nil {
-			log.Println("cannot Respond to score request", err.Error())
-		}
+		// _, err := conn.WriteToUDP([]byte("get score req received"), clientAddr)
+		// if err != nil {
+		// 	log.Println("cannot Respond to score request", err.Error())
+		// }
+		u.iHandler.APIV1ScoringmgrScoreLibnameGet(conn, packet.data)
 	case "APIV1RequestServicePost":
 		//handles service request from service application
-		_, err := conn.WriteToUDP([]byte("app service req received"), clientAddr)
-		if err != nil {
-			log.Println("cannot Respond to request app service request", err.Error())
-		}
+		// _, err := conn.WriteToUDP([]byte("app service req received"), clientAddr)
+		// if err != nil {
+		// 	log.Println("cannot Respond to request app service request", err.Error())
+		// }
+		u.eHandler.APIV1RequestServicePost(conn, packet.data)
 	}
 }
