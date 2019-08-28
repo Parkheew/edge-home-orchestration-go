@@ -44,6 +44,7 @@ type requestHelper interface {
 	DoGetWithBody(targetURL string, bodybytes []byte) (respBytes []byte, statusCode int, err error)
 	DoPost(targetURL string, bodybytes []byte) (respBytes []byte, statusCode int, err error)
 	DoDelete(targetURL string) (respBytes []byte, statusCode int, err error)
+	SendUDPRequest(endpoint string, data []byte) ([]byte, error)
 }
 
 type responseHelper interface {
@@ -238,4 +239,37 @@ func (helperImpl) ResponseJSON(w http.ResponseWriter, bytes []byte, httpStatus i
 func (helperImpl) Response(w http.ResponseWriter, httpStatus int) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(httpStatus)
+}
+
+func (helperImpl) UDPResponseJSON(conn *net.UDPConn, bytes []byte) {
+	_, err := conn.Write(bytes)
+	if err != nil {
+		log.Println("failed sending response")
+	}
+}
+
+func (helperImpl) SendUDPRequest(endpoint string, data []byte) ([]byte, error) {
+	endpointResolvedAddr, err := net.ResolveUDPAddr("udp", endpoint)
+	if err != nil {
+		log.Println("Cant send UDP request", err.Error())
+		return []byte{}, err
+	}
+	conn, err := net.DialUDP("udp", nil, endpointResolvedAddr)
+	if err != nil {
+		log.Println("Cant make UDP connection to", endpointResolvedAddr.String(), err.Error())
+		return []byte{}, err
+	}
+	defer conn.Close()
+	_, err = conn.Write(data)
+	if err != nil {
+		log.Println("Cant write to", endpointResolvedAddr.String(), err.Error())
+		return []byte{}, err
+	}
+	buffer := make([]byte, 1024)
+	_, err = conn.Read(buffer)
+	if err != nil {
+		log.Println("Error reading from", endpointResolvedAddr.String(), err.Error())
+		return []byte{}, err
+	}
+	return buffer, nil
 }
