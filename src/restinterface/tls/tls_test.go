@@ -18,7 +18,9 @@
 package tls
 
 import (
+	"errors"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -92,5 +94,36 @@ func TestGetKey(t *testing.T) {
 			t.Error("unexpeted value: ", string(ret))
 		}
 	})
+}
 
+type pskHandler struct{}
+
+func (pskHandler) GetIdentity() string {
+	return "test-identity"
+}
+
+func (pskHandler) GetKey(identity string) ([]byte, error) {
+	if strings.Compare("test-identity", identity) != 0 {
+		return nil, errors.New("invalid identity")
+	}
+	return []byte("test-identity"), nil
+}
+
+func TestSetPSKHandler(t *testing.T) {
+	SetPSKHandler(pskHandler{})
+	t.Run("Error", func(t *testing.T) {
+		id := GetIdentity()
+		id = id + "invalid"
+		_, err := GetKey(id)
+		if err == nil {
+			t.Error("unexpected succeed")
+		}
+	})
+	t.Run("Success", func(t *testing.T) {
+		id := GetIdentity()
+		_, err := GetKey(id)
+		if err != nil {
+			t.Error(err.Error())
+		}
+	})
 }
